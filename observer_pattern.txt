@@ -1,0 +1,92 @@
+//https://onlinegdb.com/Kn7UTjkGA
+
+#include <iostream>
+#include <vector>
+#include <memory>
+
+class Observer {
+public:
+    virtual void update(int state) = 0;
+};
+
+class Vehicle {
+    int state = 0;
+    std::vector<std::shared_ptr<Observer>> observers;
+
+public:
+    void attach(std::shared_ptr<Observer> observer) {
+        observers.push_back(observer);
+    }
+
+    int observerCount() const {
+        return observers.size();
+    }
+
+    void setState(int newState) {
+        state = newState;
+        notify();
+    }
+
+    void notify() {
+        for (auto& observer : observers) {
+            observer->update(state);
+        }
+    }
+};
+
+class Engine : public Observer {
+public:
+    void update(int state) override {
+        if(state == 1) {
+            std::cout << "Engine started..." << std::endl;
+        }
+        else if(state == 0) {
+            std::cout << "Engine stopped..." << std::endl;
+        }
+    }
+};
+
+class Airbags : public Observer {
+public:
+    void update(int state) override {
+        if(state == 2) {
+            std::cout << "Airbags deployed!" << std::endl;
+        }
+    }
+};
+
+// CollisionSensor class
+class CollisionSensor : public Observer {
+    Vehicle& vehicle;
+public:
+    CollisionSensor(Vehicle& v) : vehicle(v) {}
+
+    void update(int state) override {
+        if(state == 3) {  // 3 represents a detected collision
+            std::cout << "Collision detected by sensor!" << std::endl;
+            vehicle.setState(2); // Set vehicle state to 2 to indicate a crash
+        }
+    }
+};
+
+// Usage
+int main() {
+    Vehicle vehicle;
+    auto engine = std::make_shared<Engine>();
+    auto airbags = std::make_shared<Airbags>();
+    auto collisionSensor = std::make_shared<CollisionSensor>(vehicle);
+
+    vehicle.attach(engine);
+    vehicle.attach(airbags);
+    vehicle.attach(collisionSensor);
+
+    std::cout << "Total observers: " << vehicle.observerCount() << std::endl;
+
+    std::cout << "(main) Vehicle started." << std::endl;
+    vehicle.setState(1); // Vehicle running
+
+    std::cout << "(main) Collision detected." << std::endl;
+    vehicle.setState(3); // Collision detected, triggering the CollisionSensor
+
+    return 0;
+}
